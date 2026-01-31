@@ -27,7 +27,6 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
-    'daphne',  # For async support
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -56,7 +55,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = 'library_service.config.urls'
 
 TEMPLATES = [
     {
@@ -153,6 +152,13 @@ REST_FRAMEWORK = {
     },
     'EXCEPTION_HANDLER': 'library_service.apps.core.exceptions.custom_exception_handler',
 }
+
+# In development (DEBUG=True) it's sometimes useful to allow unauthenticated
+# access so local front-end dashboards can display seeded data without logging in.
+if DEBUG:
+    REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = [
+        'rest_framework.permissions.AllowAny',
+    ]
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://localhost:8000').split(',')

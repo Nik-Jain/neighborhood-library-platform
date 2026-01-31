@@ -16,7 +16,7 @@ class Command(BaseCommand):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fake = Faker()
+        self.fake = Faker('en_IN')
     
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Starting database seeding...'))
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                 author=authors[i % len(authors)],
                 defaults={
                     'publisher': self.fake.company(),
-                    'publication_year': self.fake.year_int(min_value=1980, max_value=2024),
+                    'publication_year': int(self.fake.date_between(start_date='-126y', end_date='today').year),
                     'description': self.fake.paragraph(nb_sentences=3),
                     'total_copies': self.fake.random_int(min=1, max=10),
                     'available_copies': self.fake.random_int(min=0, max=10),
