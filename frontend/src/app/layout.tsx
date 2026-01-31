@@ -2,7 +2,8 @@
 
 import { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import Navigation from './navigation'
+import Navigation from '../components/navigation'
+import './globals.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
