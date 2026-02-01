@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { BookOpen, Users, RotateCw, AlertTriangle, LogOut, Menu, X } from 'lucide-react'
+import { BookOpen, Users, RotateCw, AlertTriangle, LogOut, Menu, X, UserCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import clsx from 'clsx'
 import { useAuthStore } from '@/store/auth'
@@ -128,6 +128,18 @@ export default function Navigation() {
                 </div>
               </div>
             )}
+            <Link
+              href="/profile"
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium',
+                pathname === '/profile'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <UserCircle className="w-4 h-4" />
+              Profile
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
@@ -185,6 +197,20 @@ export default function Navigation() {
                 </div>
               </div>
             )}
+
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className={clsx(
+                'block px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors',
+                pathname === '/profile'
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <UserCircle className="w-4 h-4" />
+              Profile
+            </Link>
 
             <button
               onClick={handleLogout}

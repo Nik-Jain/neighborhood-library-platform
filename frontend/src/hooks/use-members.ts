@@ -16,6 +16,13 @@ export const useMemberQuery = (id: string) => {
   })
 }
 
+export const useCurrentMemberQuery = () => {
+  return useQuery({
+    queryKey: ['currentMember'],
+    queryFn: () => memberApi.me(),
+  })
+}
+
 export const useCreateMemberMutation = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -34,6 +41,7 @@ export const useUpdateMemberMutation = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['member', id] })
       queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: ['currentMember'] })
     },
   })
 }
@@ -61,5 +69,12 @@ export const useMemberActiveBorrowingsQuery = (id: string) => {
     queryKey: ['memberActiveBorrowings', id],
     queryFn: () => memberApi.activeBorrowings(id),
     enabled: !!id,
+  })
+}
+
+export const useChangePasswordMutation = () => {
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { old_password?: string; new_password: string; new_password_confirm: string } }) =>
+      memberApi.changePassword(id, data),
   })
 }
