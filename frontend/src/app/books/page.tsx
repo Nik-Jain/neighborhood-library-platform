@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useBooksQuery, useCreateBookMutation } from '@/hooks/use-books'
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { useBooksQuery, useDeleteBookMutation } from '@/hooks/use-books'
+import { Plus, Edit, Trash2, Eye, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 
@@ -11,8 +11,27 @@ export default function BooksPage() {
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading } = useBooksQuery({ page, search: searchQuery })
+  const deleteBook = useDeleteBookMutation()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const books = data?.data?.results || []
+
+  const handleDelete = async (id: string) => {
+    if (!isAdminOrLibrarian()) return
+    const confirmed = window.confirm('Are you sure you want to delete this book?')
+    if (!confirmed) return
+    try {
+      setDeletingId(id)
+      setDeleteError(null)
+      await deleteBook.mutateAsync(id)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || 'Failed to delete book. Please try again.'
+      setDeleteError(errorMessage)
+    } finally {
+      setDeletingId((current) => (current === id ? null : current))
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -28,6 +47,21 @@ export default function BooksPage() {
           </Link>
         )}
       </div>
+
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{deleteError}</p>
+          </div>
+          <button
+            onClick={() => setDeleteError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">
@@ -101,7 +135,12 @@ export default function BooksPage() {
                           >
                             <Edit className="w-4 h-4" />
                           </Link>
-                          <button className="text-red-600 hover:text-red-700">
+                          <button
+                            onClick={() => handleDelete(book.id)}
+                            disabled={deletingId === book.id}
+                            className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                            aria-label="Delete book"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </>

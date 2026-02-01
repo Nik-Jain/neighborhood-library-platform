@@ -143,8 +143,12 @@ class Book(TimestampedModel):
         return self.available_copies > 0
     
     def get_borrowing_count(self):
-        """Get the number of times this book has been borrowed."""
-        return self.borrowing_set.filter(returned_at__isnull=False).count()
+        """Get the total number of times this book has been borrowed."""
+        return self.borrowing_set.count()
+    
+    def get_active_borrowings_count(self):
+        """Get the number of active borrowings for this book."""
+        return self.borrowing_set.filter(returned_at__isnull=True).count()
 
 
 class Borrowing(TimestampedModel):
