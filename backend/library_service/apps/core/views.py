@@ -21,6 +21,7 @@ from .serializers import (
 )
 from .filters import BorrowingFilterSet, BookFilterSet, MemberFilterSet
 from .pagination import StandardResultsSetPagination
+from .permissions import IsAdmin, IsAdminOrLibrarian, IsMember
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ class MemberViewSet(viewsets.ModelViewSet):
     ViewSet for managing library members.
     
     Provides CRUD operations and additional actions for member management.
+    - List/Read: Any authenticated user
+    - Create/Update/Delete: ADMIN or LIBRARIAN only
     """
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
@@ -40,6 +43,12 @@ class MemberViewSet(viewsets.ModelViewSet):
     search_fields = ['first_name', 'last_name', 'email', 'membership_number']
     ordering_fields = ['first_name', 'last_name', 'join_date', 'created_at']
     ordering = ['-created_at']
+
+    def get_permissions(self):
+        """Apply different permissions based on action."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'suspend', 'activate']:
+            return [IsAdminOrLibrarian()]
+        return [IsAuthenticated()]
     
     @action(detail=True, methods=['get'])
     def borrowing_history(self, request, pk=None):
@@ -109,6 +118,8 @@ class BookViewSet(viewsets.ModelViewSet):
     ViewSet for managing library books.
     
     Provides CRUD operations and additional actions for book management.
+    - List/Read: Any authenticated user
+    - Create/Update/Delete: ADMIN or LIBRARIAN only
     """
     queryset = Book.objects.all()
     serializer_class = BookSerializer
@@ -119,6 +130,12 @@ class BookViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'author', 'isbn', 'publisher']
     ordering_fields = ['title', 'author', 'publication_year', 'created_at']
     ordering = ['-created_at']
+
+    def get_permissions(self):
+        """Apply different permissions based on action."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'increase_copies']:
+            return [IsAdminOrLibrarian()]
+        return [IsAuthenticated()]
     
     @action(detail=True, methods=['get'])
     def borrowing_history(self, request, pk=None):
@@ -184,6 +201,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     ViewSet for managing borrowing operations.
     
     Handles borrowing, returning, and tracking of books.
+    - List/Read: ADMIN/LIBRARIAN see all; MEMBER sees only their own
+    - Create/Update/Delete: ADMIN or LIBRARIAN only
+    - return_book: ADMIN or LIBRARIAN only
     """
     queryset = Borrowing.objects.all()
     permission_classes = [IsAuthenticated]
@@ -192,6 +212,30 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     filterset_class = BorrowingFilterSet
     ordering_fields = ['borrowed_at', 'due_date', 'created_at']
     ordering = ['-borrowed_at']
+
+    def get_permissions(self):
+        """Apply different permissions based on action."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'return_book']:
+            return [IsAdminOrLibrarian()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        """Filter borrowings: MEMBERs see only their own; ADMIN/LIBRARIAN see all."""
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Check if user is ADMIN or LIBRARIAN
+        if user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            return queryset
+
+        # MEMBERs see only their own borrowings
+        # Find the Member record linked to this user
+        try:
+            from .models import Member
+            member = Member.objects.get(email=user.username)
+            return queryset.filter(member=member)
+        except Member.DoesNotExist:
+            return queryset.none()
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
@@ -318,6 +362,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 class FineViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for viewing fines.
+    - List/Read: Any authenticated user
+    - mark_as_paid: ADMIN or LIBRARIAN only
     """
     queryset = Fine.objects.all()
     serializer_class = FineSerializer
@@ -327,6 +373,12 @@ class FineViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['is_paid']
     ordering_fields = ['amount', 'created_at']
     ordering = ['-created_at']
+
+    def get_permissions(self):
+        """Apply IsAdminOrLibrarian permission for mark_as_paid action."""
+        if self.action == 'mark_as_paid':
+            return [IsAdminOrLibrarian()]
+        return [IsAuthenticated()]
     
     @action(detail=True, methods=['post'])
     def mark_as_paid(self, request, pk=None):

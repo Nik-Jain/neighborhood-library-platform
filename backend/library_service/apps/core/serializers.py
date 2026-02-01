@@ -129,6 +129,10 @@ class BorrowingDetailSerializer(serializers.ModelSerializer):
             'id', 'borrowed_at', 'created_at', 'updated_at',
             'status', 'is_overdue', 'days_until_due', 'days_overdue'
         ]
+        extra_kwargs = {
+            'due_date': {'required': False},
+            'notes': {'required': False},
+        }
     
     def validate(self, data):
         """Validate borrowing operation."""

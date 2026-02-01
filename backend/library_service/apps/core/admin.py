@@ -7,7 +7,7 @@ from django.urls import path, reverse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.html import format_html
 from django.template.response import TemplateResponse
-from .models import Member, Book, Borrowing, Fine
+from .models import Member, Book, Borrowing, Fine, APIToken
 
 
 class PasswordChangeForm(forms.Form):
@@ -180,3 +180,16 @@ class FineAdmin(admin.ModelAdmin):
     def get_book_title(self, obj):
         return obj.borrowing.book.title
     get_book_title.short_description = 'Book'
+
+
+@admin.register(APIToken)
+class APITokenAdmin(admin.ModelAdmin):
+    """Admin interface for API tokens."""
+    list_display = ('key', 'user', 'created_at', 'last_used_at')
+    list_filter = ('created_at', 'last_used_at')
+    search_fields = ('user__username', 'user__email', 'key')
+    readonly_fields = ('key', 'created_at', 'last_used_at')
+    
+    def has_add_permission(self, request):
+        """Prevent manual token creation in admin."""
+        return False

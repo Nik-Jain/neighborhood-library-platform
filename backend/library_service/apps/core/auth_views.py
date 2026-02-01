@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
 from .auth_serializers import SignupSerializer, LoginSerializer, MemberDetailSerializer
-from .models import Member
+from .models import Member, APIToken
 import secrets
 import hashlib
 
@@ -27,12 +27,29 @@ class SignupView(APIView):
         if serializer.is_valid():
             member = serializer.save()
             
-            # Create a custom token for this member (since we use UUID, not integer PKs)
-            token_key = self._generate_token()
+            # Get or create the Django User for this member (created by signal)
+            user = User.objects.filter(username=member.email).first()
+            if not user:
+                # Fallback if signal didn't fire
+                user = User.objects.create(
+                    username=member.email,
+                    email=member.email,
+                    first_name=member.first_name,
+                    last_name=member.last_name,
+                    is_active=(member.membership_status == 'active')
+                )
+                user.set_unusable_password()
+                user.save()
+                # Assign MEMBER role
+                from .utils import assign_default_member_role
+                assign_default_member_role(user)
+            
+            # Create API token for the user
+            token = APIToken.objects.create(user=user)
             
             return Response(
                 {
-                    'token': token_key,
+                    'token': token.key,
                     'member': MemberDetailSerializer(member).data,
                     'message': 'Account created successfully'
                 },
@@ -43,10 +60,6 @@ class SignupView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    def _generate_token(self):
-        """Generate a random token key."""
-        return secrets.token_hex(20)
 
 
 class LoginView(APIView):
@@ -65,12 +78,28 @@ class LoginView(APIView):
         if serializer.is_valid():
             member = serializer.validated_data['member']
             
-            # Generate token (we'll store it in member model later if needed)
-            token_key = self._generate_token()
+            # Get or create the Django User for this member
+            user = User.objects.filter(username=member.email).first()
+            if not user:
+                # Create user if doesn't exist (shouldn't happen with signals)
+                user = User.objects.create(
+                    username=member.email,
+                    email=member.email,
+                    first_name=member.first_name,
+                    last_name=member.last_name,
+                    is_active=(member.membership_status == 'active')
+                )
+                user.set_unusable_password()
+                user.save()
+                from .utils import assign_default_member_role
+                assign_default_member_role(user)
+            
+            # Get or create API token for this user
+            token, created = APIToken.objects.get_or_create(user=user)
             
             return Response(
                 {
-                    'token': token_key,
+                    'token': token.key,
                     'member': MemberDetailSerializer(member).data,
                     'message': 'Login successful'
                 },
@@ -81,10 +110,6 @@ class LoginView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    def _generate_token(self):
-        """Generate a random token key."""
-        return secrets.token_hex(20)
 
 
 class LogoutView(APIView):
@@ -98,6 +123,8 @@ class LogoutView(APIView):
         """
         Logout user by deleting their token.
         """
+        # Delete all tokens for this user
+        APIToken.objects.filter(user=request.user).delete()
         return Response(
             {'message': 'Logout successful'},
             status=status.HTTP_200_OK
@@ -114,14 +141,34 @@ class CurrentUserView(APIView):
     def get(self, request):
         """
         Get current user's information.
-        The user info is extracted from the token in the authentication middleware.
         """
-        # For now, return a message that token is valid
-        return Response(
-            {
-                'message': 'Token is valid',
-                'authenticated': True
-            },
-            status=status.HTTP_200_OK
-        )
+        user = request.user
+        
+        # Try to find the associated member
+        try:
+            member = Member.objects.get(email=user.username)
+            return Response(
+                {
+                    'user': {
+                        'username': user.username,
+                        'email': user.email,
+                        'groups': list(user.groups.values_list('name', flat=True)),
+                    },
+                    'member': MemberDetailSerializer(member).data,
+                    'authenticated': True
+                },
+                status=status.HTTP_200_OK
+            )
+        except Member.DoesNotExist:
+            return Response(
+                {
+                    'user': {
+                        'username': user.username,
+                        'email': user.email,
+                        'groups': list(user.groups.values_list('name', flat=True)),
+                    },
+                    'authenticated': True
+                },
+                status=status.HTTP_200_OK
+            )
 

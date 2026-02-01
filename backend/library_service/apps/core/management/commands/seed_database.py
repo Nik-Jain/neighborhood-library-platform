@@ -39,7 +39,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Database seeding completed!'))
     
     def _create_superuser(self):
-        """Create a superuser if it doesn't exist."""
+        """Create a superuser if it doesn't exist and ensure RBAC groups."""
+        # Ensure roles/groups exist
+        try:
+            from django.contrib.auth.models import Group
+            from library_service.apps.core.utils import ensure_roles_exist
+            ensure_roles_exist()
+        except Exception:
+            pass
+
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser(
                 username='admin',
@@ -47,7 +55,17 @@ class Command(BaseCommand):
                 password='admin123'
             )
             self.stdout.write(self.style.SUCCESS('Created superuser: admin'))
-        
+
+        # Ensure superuser is in ADMIN group
+        try:
+            admin_user = User.objects.filter(username='admin').first()
+            if admin_user:
+                admin_group, _ = Group.objects.get_or_create(name='ADMIN')
+                admin_user.groups.add(admin_group)
+                admin_user.save()
+        except Exception:
+            pass
+
         # Also create an admin member account for API login
         if not Member.objects.filter(email='admin@library.local').exists():
             admin_member = Member.objects.create(
