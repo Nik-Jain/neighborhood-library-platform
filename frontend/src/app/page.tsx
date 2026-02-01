@@ -15,6 +15,8 @@ export default function Dashboard() {
   const { data: booksData } = useBooksQuery({ page_size: 1 })
   const { data: membersData } = useMembersQuery({ page_size: 1 })
   const { data: borrowingsData } = useActiveBorrowingsQuery()
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+  const docsUrl = apiBaseUrl.replace(/\/api\/v1\/?$/, '/api/docs/')
 
   useEffect(() => {
     loadFromStorage()
@@ -130,7 +132,9 @@ export default function Dashboard() {
             Learn how to use the library management system by visiting our documentation.
           </p>
           <a
-            href="#"
+            href={docsUrl}
+            target="_blank"
+            rel="noreferrer"
             className="inline-block px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
           >
             View Documentation
