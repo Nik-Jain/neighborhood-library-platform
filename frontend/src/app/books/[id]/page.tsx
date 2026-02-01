@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { AlertCircle, Edit, Loader, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useBookQuery, useDeleteBookMutation, useBookBorrowingHistoryQuery } from '@/hooks/use-books'
+import { formatDate } from '@/lib/date'
 
 export default function BookDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -109,7 +110,7 @@ export default function BookDetailsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase">Book Information</h2>
@@ -144,7 +145,7 @@ export default function BookDetailsPage() {
         {book.description && (
           <div className="mt-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase">Description</h2>
-            <p className="mt-2 text-gray-700">{book.description}</p>
+            <p className="mt-2 text-gray-700 break-words" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{book.description}</p>
           </div>
         )}
       </div>
@@ -185,11 +186,11 @@ export default function BookDetailsPage() {
                   <tr key={borrowing.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-900">{borrowing.member_name}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(borrowing.borrowed_at).toLocaleDateString()}
+                      {formatDate(borrowing.borrowed_at)}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{borrowing.due_date}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(borrowing.due_date)}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {borrowing.returned_at ? new Date(borrowing.returned_at).toLocaleDateString() : '—'}
+                      {formatDate(borrowing.returned_at)}
                     </td>
                     <td className="px-6 py-4">
                       <span

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useFinesQuery, useUnpaidFinesQuery, useMarkAsPaidMutation } from '@/hooks/use-fines'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { formatDate } from '@/lib/date'
 
 export default function FinesPage() {
   const [showUnpaidOnly, setShowUnpaidOnly] = useState(true)
@@ -114,7 +115,7 @@ export default function FinesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(fine.created_at).toLocaleDateString()}
+                      {formatDate(fine.created_at)}
                     </td>
                     <td className="px-6 py-4">
                       {!fine.is_paid && (

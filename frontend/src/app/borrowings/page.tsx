@@ -5,6 +5,7 @@ import { useBorrowingsQuery, useActiveBorrowingsQuery, useOverdueBorrowingsQuery
 import { Plus, RotateCw, AlertTriangle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
+import { formatDate } from '@/lib/date'
 
 export default function BorrowingsPage() {
   const { isAdminOrLibrarian } = useAuthStore()
@@ -147,9 +148,9 @@ export default function BorrowingsPage() {
                     <td className="px-6 py-4 font-medium text-gray-900">{borrowing.member_name}</td>
                     <td className="px-6 py-4 text-gray-600">{borrowing.book_title}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(borrowing.borrowed_at).toLocaleDateString()}
+                      {formatDate(borrowing.borrowed_at)}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{borrowing.due_date}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(borrowing.due_date)}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${

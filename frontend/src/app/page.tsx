@@ -35,7 +35,14 @@ export default function Dashboard() {
       try {
         const userResponse = await apiClient.get('/auth/user/')
         const groups = userResponse.data.user?.groups || []
-        updateUser({ ...user, groups })
+        const currentGroups = user.groups || []
+        const sameGroups =
+          currentGroups.length === groups.length &&
+          currentGroups.every((group) => groups.includes(group))
+
+        if (!sameGroups) {
+          updateUser({ ...user, groups })
+        }
       } catch {
         // ignore refresh failures; keep existing state
       }
@@ -57,7 +64,7 @@ export default function Dashboard() {
     return null
   }
 
-  const canViewMemberStats = isAdminOrLibrarian() && !isMember()
+  const canViewMemberStats = isAdminOrLibrarian()
 
   // Different stats for different user roles
   const stats = canViewMemberStats ? [
