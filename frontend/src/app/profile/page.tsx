@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useCurrentMemberQuery, useUpdateMemberMutation, useChangePasswordMutation, useMemberActiveBorrowingsQuery, useMemberBorrowingHistoryQuery } from '@/hooks/use-members'
 import { User, Lock, BookOpen, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react'
+import { formatDate } from '@/lib/date'
 
 export default function ProfilePage() {
   const { data: memberResponse, isLoading, isError } = useCurrentMemberQuery()
@@ -250,7 +251,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Join Date</label>
-                  <p className="text-gray-900">{new Date(member.join_date).toLocaleDateString()}</p>
+                  <p className="text-gray-900">{formatDate(member.join_date)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Active Borrowings</label>
@@ -414,18 +415,18 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600">Borrowed On</label>
-                      <p className="text-gray-900">{new Date(borrowing.borrowed_at).toLocaleDateString()}</p>
+                      <p className="text-gray-900">{formatDate(borrowing.borrowed_at)}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600">Due Date</label>
                       <p className={borrowing.is_overdue && !borrowing.returned_at ? 'text-red-600 font-medium' : 'text-gray-900'}>
-                        {new Date(borrowing.due_date).toLocaleDateString()}
+                        {formatDate(borrowing.due_date)}
                       </p>
                     </div>
                     {borrowing.returned_at && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Returned On</label>
-                        <p className="text-gray-900">{new Date(borrowing.returned_at).toLocaleDateString()}</p>
+                        <p className="text-gray-900">{formatDate(borrowing.returned_at)}</p>
                       </div>
                     )}
                     {borrowing.days_until_due !== null && borrowing.days_until_due !== undefined && (

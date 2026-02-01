@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { AlertCircle, Edit, Loader, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useMemberQuery, useDeleteMemberMutation, useMemberBorrowingHistoryQuery } from '@/hooks/use-members'
+import { formatDate } from '@/lib/date'
 
 export default function MemberDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -136,7 +137,7 @@ export default function MemberDetailsPage() {
                 {member.membership_status}
               </span>
             </p>
-            <p><span className="font-medium">Joined:</span> {new Date(member.join_date).toLocaleDateString()}</p>
+            <p><span className="font-medium">Joined:</span> {formatDate(member.join_date)}</p>
             <p><span className="font-medium">Active borrowings:</span> {member.active_borrowings_count}</p>
             <p><span className="font-medium">Overdue borrowings:</span> {member.overdue_borrowings_count}</p>
           </div>
@@ -179,11 +180,11 @@ export default function MemberDetailsPage() {
                   <tr key={borrowing.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-900">{borrowing.book_title}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(borrowing.borrowed_at).toLocaleDateString()}
+                      {formatDate(borrowing.borrowed_at)}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{borrowing.due_date}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(borrowing.due_date)}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {borrowing.returned_at ? new Date(borrowing.returned_at).toLocaleDateString() : '—'}
+                      {formatDate(borrowing.returned_at)}
                     </td>
                     <td className="px-6 py-4">
                       <span
