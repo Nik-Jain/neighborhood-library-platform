@@ -15,6 +15,7 @@ interface AuthStore {
   token: string | null
   isAuthenticated: boolean
   setAuth: (user: User, token: string) => void
+  updateUser: (user: User) => void
   logout: () => void
   loadFromStorage: () => void
   isAdmin: () => boolean
@@ -29,19 +30,33 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isAuthenticated: false,
   
   setAuth: (user, token) => {
+    // First, clear any existing auth state to prevent permission leaks
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      // Then set the new values
       localStorage.setItem('authToken', token)
       localStorage.setItem('user', JSON.stringify(user))
     }
     set({ user, token, isAuthenticated: true })
   },
+
+  updateUser: (user) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(user))
+    }
+    set((state) => ({ user, token: state.token, isAuthenticated: state.isAuthenticated }))
+  },
   
   logout: () => {
+    // Ensure complete cleanup of auth state
+    set({ user: null, token: null, isAuthenticated: false })
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
       localStorage.removeItem('user')
+      // Force a storage event to ensure all tabs are synchronized
+      window.dispatchEvent(new Event('storage'))
     }
-    set({ user: null, token: null, isAuthenticated: false })
   },
   
   loadFromStorage: () => {

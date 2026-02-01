@@ -1,17 +1,19 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useBooksQuery } from '@/hooks/use-books'
 import { useMembersQuery } from '@/hooks/use-members'
 import { useActiveBorrowingsQuery } from '@/hooks/use-borrowings'
 import { useAuthStore } from '@/store/auth'
+import apiClient from '@/lib/api-client'
 import { Book, Users, RotateCw, AlertTriangle } from 'lucide-react'
 
 export default function Dashboard() {
   const router = useRouter()
-  const { isAuthenticated, loadFromStorage, isAdminOrLibrarian, isMember } = useAuthStore()
+  const { isAuthenticated, loadFromStorage, isAdminOrLibrarian, isMember, updateUser, user, token } = useAuthStore()
+  const [isLoading, setIsLoading] = useState(true)
   const { data: booksData } = useBooksQuery({ page_size: 1 })
   const { data: membersData } = useMembersQuery({ page_size: 1 })
   const { data: borrowingsData } = useActiveBorrowingsQuery()
@@ -19,18 +21,46 @@ export default function Dashboard() {
   const docsUrl = apiBaseUrl.replace(/\/api\/v1\/?$/, '/api/docs/')
 
   useEffect(() => {
+    // Load auth state from storage on mount only
     loadFromStorage()
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
+    setIsLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const refreshGroups = async () => {
+      if (!isAuthenticated || !user || !token) {
+        return
+      }
+      try {
+        const userResponse = await apiClient.get('/auth/user/')
+        const groups = userResponse.data.user?.groups || []
+        updateUser({ ...user, groups })
+      } catch {
+        // ignore refresh failures; keep existing state
+      }
+    }
+
+    if (!isLoading) {
+      refreshGroups()
+    }
+  }, [isLoading, isAuthenticated, user, token, updateUser])
+
+  useEffect(() => {
+    // Only redirect after loading is complete
+    if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
-  }, [isAuthenticated, router, loadFromStorage])
+  }, [isLoading, isAuthenticated, router])
 
-  if (!isAuthenticated) {
+  if (isLoading || !isAuthenticated) {
     return null
   }
 
-  const stats = [
+  const canViewMemberStats = isAdminOrLibrarian() && !isMember()
+
+  // Different stats for different user roles
+  const stats = canViewMemberStats ? [
     {
       label: 'Total Books',
       value: booksData?.data?.count || 0,
@@ -49,6 +79,19 @@ export default function Dashboard() {
       icon: RotateCw,
       color: 'bg-yellow-100 text-yellow-600',
     },
+  ] : [
+    {
+      label: 'Available Books',
+      value: booksData?.data?.count || 0,
+      icon: Book,
+      color: 'bg-blue-100 text-blue-600',
+    },
+    {
+      label: 'My Active Borrowings',
+      value: borrowingsData?.data?.count || 0,
+      icon: RotateCw,
+      color: 'bg-yellow-100 text-yellow-600',
+    },
   ]
 
   return (
@@ -58,7 +101,7 @@ export default function Dashboard() {
         <p className="text-gray-600 mt-2">Welcome to Neighborhood Library Platform</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${canViewMemberStats ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
