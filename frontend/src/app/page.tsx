@@ -1,15 +1,32 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useBooksQuery } from '@/hooks/use-books'
 import { useMembersQuery } from '@/hooks/use-members'
 import { useActiveBorrowingsQuery } from '@/hooks/use-borrowings'
+import { useAuthStore } from '@/store/auth'
 import { Book, Users, RotateCw, AlertTriangle } from 'lucide-react'
 
 export default function Dashboard() {
+  const router = useRouter()
+  const { isAuthenticated, loadFromStorage } = useAuthStore()
   const { data: booksData } = useBooksQuery({ page_size: 1 })
   const { data: membersData } = useMembersQuery({ page_size: 1 })
   const { data: borrowingsData } = useActiveBorrowingsQuery()
+
+  useEffect(() => {
+    loadFromStorage()
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router, loadFromStorage])
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   const stats = [
     {

@@ -4,6 +4,7 @@ Models for the core library service application.
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 from datetime import timedelta
 import uuid
 
@@ -37,6 +38,7 @@ class Member(TimestampedModel):
     phone = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     membership_number = models.CharField(max_length=50, unique=True)
+    password = models.CharField(max_length=255, blank=False, null=False, default='user123')
     membership_status = models.CharField(
         max_length=20,
         choices=MEMBERSHIP_STATUS_CHOICES,
@@ -57,6 +59,14 @@ class Member(TimestampedModel):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def set_password(self, raw_password):
+        """Hash and set the password."""
+        self.password = make_password(raw_password)
+    
+    def check_password(self, raw_password):
+        """Check if the provided password matches the stored hash."""
+        return check_password(raw_password, self.password)
     
     def get_active_borrowings(self):
         """Get all currently active borrowings for this member."""
