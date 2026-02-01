@@ -91,12 +91,23 @@ class BookSerializer(serializers.ModelSerializer):
         return data
 
 
+class FineSummarySerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for fine details attached to a borrowing.
+    """
+
+    class Meta:
+        model = Fine
+        fields = ['id', 'amount', 'reason', 'is_paid', 'paid_at']
+
+
 class BorrowingListSerializer(serializers.ModelSerializer):
     """
     Simplified serializer for listing borrowings.
     """
     member_name = serializers.CharField(source='member.full_name', read_only=True)
     book_title = serializers.CharField(source='book.title', read_only=True)
+    fine = FineSummarySerializer(read_only=True)
     status = serializers.CharField(read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
     days_until_due = serializers.IntegerField(read_only=True)
@@ -107,7 +118,7 @@ class BorrowingListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'member', 'member_name', 'book', 'book_title',
             'borrowed_at', 'due_date', 'returned_at', 'status',
-            'is_overdue', 'days_until_due', 'days_overdue'
+            'is_overdue', 'days_until_due', 'days_overdue', 'fine'
         ]
         read_only_fields = [
             'id', 'borrowed_at', 'created_at', 'updated_at',

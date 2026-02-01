@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useMembersQuery, useCreateMemberMutation } from '@/hooks/use-members'
+import { useMembersQuery, useDeleteMemberMutation } from '@/hooks/use-members'
 import { Plus, Edit, Trash2, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
@@ -11,9 +11,22 @@ export default function MembersPage() {
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading } = useMembersQuery({ page, search: searchQuery })
-  const createMutation = useCreateMemberMutation()
+  const deleteMember = useDeleteMemberMutation()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const members = data?.data?.results || []
+
+  const handleDelete = async (id: string) => {
+    if (!isAdminOrLibrarian()) return
+    const confirmed = window.confirm('Are you sure you want to delete this member?')
+    if (!confirmed) return
+    try {
+      setDeletingId(id)
+      await deleteMember.mutateAsync(id)
+    } finally {
+      setDeletingId((current) => (current === id ? null : current))
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -52,7 +65,7 @@ export default function MembersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Membership</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Active Loans</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Active Borrowings</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
               </tr>
             </thead>
@@ -102,7 +115,12 @@ export default function MembersPage() {
                           >
                             <Edit className="w-4 h-4" />
                           </Link>
-                          <button className="text-red-600 hover:text-red-700">
+                          <button
+                            onClick={() => handleDelete(member.id)}
+                            disabled={deletingId === member.id}
+                            className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                            aria-label="Delete member"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </>
