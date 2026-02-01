@@ -154,21 +154,11 @@ export default function LoginPage() {
             Create Account
           </Link>
 
-          {/* Demo Credentials */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-900 text-xs font-medium mb-2">Demo Credentials:</p>
-            <p className="text-blue-800 text-xs mb-1">
-              <span className="font-medium">Email:</span> admin@library.local
-            </p>
-            <p className="text-blue-800 text-xs">
-              <span className="font-medium">Password:</span> admin123
-            </p>
-          </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-gray-600 text-sm mt-6">
-          © 2024 Neighborhood Library Platform. All rights reserved.
+          © 2026 Neighborhood Library Platform. All rights reserved.
         </p>
       </div>
     </div>
