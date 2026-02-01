@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useBorrowingsQuery, useActiveBorrowingsQuery, useOverdueBorrowingsQuery } from '@/hooks/use-borrowings'
 import { Plus, RotateCw, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { useAuthStore } from '@/store/auth'
 
 export default function BorrowingsPage() {
+  const { isAdminOrLibrarian } = useAuthStore()
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'overdue'>('active')
   const [page, setPage] = useState(1)
 
@@ -24,14 +26,16 @@ export default function BorrowingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Borrowings</h1>
-        <Link
-          href="/borrowings/new"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Record Borrowing
-        </Link>
+        <h1 className="text-3xl font-bold text-gray-900">{isAdminOrLibrarian() ? 'Borrowings' : 'My Borrowings'}</h1>
+        {isAdminOrLibrarian() && (
+          <Link
+            href="/borrowings/new"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Record Borrowing
+          </Link>
+        )}
       </div>
 
       <div className="flex gap-2">

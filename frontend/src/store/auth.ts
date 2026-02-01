@@ -4,6 +4,9 @@ interface User {
   id: string
   username: string
   email: string
+  groups?: string[]
+  first_name?: string
+  last_name?: string
 }
 
 interface AuthStore {
@@ -13,9 +16,13 @@ interface AuthStore {
   setAuth: (user: User, token: string) => void
   logout: () => void
   loadFromStorage: () => void
+  isAdmin: () => boolean
+  isLibrarian: () => boolean
+  isAdminOrLibrarian: () => boolean
+  isMember: () => boolean
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   token: null,
   isAuthenticated: false,
@@ -46,5 +53,25 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ user, token, isAuthenticated: true })
       }
     }
+  },
+
+  isAdmin: () => {
+    const { user } = get()
+    return user?.groups?.includes('ADMIN') || false
+  },
+
+  isLibrarian: () => {
+    const { user } = get()
+    return user?.groups?.includes('LIBRARIAN') || false
+  },
+
+  isAdminOrLibrarian: () => {
+    const { user } = get()
+    return user?.groups?.some(g => g === 'ADMIN' || g === 'LIBRARIAN') || false
+  },
+
+  isMember: () => {
+    const { user } = get()
+    return user?.groups?.includes('MEMBER') || false
   },
 }))

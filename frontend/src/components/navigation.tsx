@@ -11,9 +11,17 @@ import apiClient from '@/lib/api-client'
 export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, user, logout, loadFromStorage } = useAuthStore()
+  const { isAuthenticated, user, logout, loadFromStorage, isAdmin, isLibrarian, isMember } = useAuthStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Get user's primary role for display
+  const getUserRole = () => {
+    if (isAdmin()) return 'Admin'
+    if (isLibrarian()) return 'Librarian'
+    if (isMember()) return 'Member'
+    return 'User'
+  }
 
   useEffect(() => {
     // Load auth state from storage on mount
@@ -112,7 +120,12 @@ export default function Navigation() {
             {user && (
               <div className="text-right pr-4 border-r border-gray-200">
                 <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 font-medium">
+                    {getUserRole()}
+                  </span>
+                </div>
               </div>
             )}
             <button
@@ -164,7 +177,12 @@ export default function Navigation() {
             {user && (
               <div className="px-4 py-3 border-t border-gray-200 mt-2">
                 <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 font-medium">
+                    {getUserRole()}
+                  </span>
+                </div>
               </div>
             )}
 

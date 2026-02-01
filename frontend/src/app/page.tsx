@@ -11,7 +11,7 @@ import { Book, Users, RotateCw, AlertTriangle } from 'lucide-react'
 
 export default function Dashboard() {
   const router = useRouter()
-  const { isAuthenticated, loadFromStorage } = useAuthStore()
+  const { isAuthenticated, loadFromStorage, isAdminOrLibrarian, isMember } = useAuthStore()
   const { data: booksData } = useBooksQuery({ page_size: 1 })
   const { data: membersData } = useMembersQuery({ page_size: 1 })
   const { data: borrowingsData } = useActiveBorrowingsQuery()
@@ -79,29 +79,50 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <Link
-              href="/members/new"
-              className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
-            >
-              Add New Member
-            </Link>
-            <Link
-              href="/books/new"
-              className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
-            >
-              Add New Book
-            </Link>
-            <Link
-              href="/borrowings/new"
-              className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
-            >
-              Record Borrowing
-            </Link>
+        {isAdminOrLibrarian() && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="space-y-3">
+              <Link
+                href="/members/new"
+                className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
+              >
+                Add New Member
+              </Link>
+              <Link
+                href="/books/new"
+                className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
+              >
+                Add New Book
+              </Link>
+              <Link
+                href="/borrowings/new"
+                className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
+              >
+                Record Borrowing
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
+        {isMember() && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="space-y-3">
+              <Link
+                href="/books"
+                className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
+              >
+                Browse Books
+              </Link>
+              <Link
+                href="/borrowings"
+                className="block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-medium"
+              >
+                My Borrowings
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Documentation</h2>
