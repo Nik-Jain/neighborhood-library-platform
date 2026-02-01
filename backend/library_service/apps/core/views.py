@@ -383,8 +383,11 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        returned_at = timezone.now()
+        days_overdue = max((returned_at.date() - borrowing.due_date).days, 0)
+
         # Mark as returned
-        borrowing.returned_at = timezone.now()
+        borrowing.returned_at = returned_at
         borrowing.save()
         
         # Update book availability
@@ -392,16 +395,17 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing.book.save()
         
         # Check for overdue and create fine if needed
-        if borrowing.is_overdue:
-            days_overdue = borrowing.days_overdue
-            fine_amount = days_overdue * 0.50  # $0.50 per day
-            
-            Fine.objects.create(
+        if days_overdue > 0:
+            fine_amount = days_overdue * 1.00  # $1.00 per day
+
+            Fine.objects.get_or_create(
                 borrowing=borrowing,
-                amount=fine_amount,
-                reason=f"Overdue by {days_overdue} days"
+                defaults={
+                    'amount': fine_amount,
+                    'reason': f"Overdue by {days_overdue} days"
+                }
             )
-            
+
             logger.warning(
                 f"Fine created: {borrowing.member.full_name} "
                 f"returned {borrowing.book.title} {days_overdue} days late"
