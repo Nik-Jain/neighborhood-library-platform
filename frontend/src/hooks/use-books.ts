@@ -59,3 +59,11 @@ export const useIncreaseCopiesMutation = () => {
     },
   })
 }
+
+export const useBookBorrowingHistoryQuery = (id: string, params?: any) => {
+  return useQuery({
+    queryKey: ['bookBorrowingHistory', id, params],
+    queryFn: () => bookApi.borrowingHistory(id, params),
+    enabled: !!id,
+  })
+}

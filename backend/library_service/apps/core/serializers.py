@@ -59,19 +59,25 @@ class BookSerializer(serializers.ModelSerializer):
     """
     is_available = serializers.BooleanField(read_only=True)
     borrowing_count = serializers.SerializerMethodField()
+    active_borrowings_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Book
         fields = [
             'id', 'isbn', 'title', 'author', 'publisher', 'publication_year',
             'description', 'total_copies', 'available_copies', 'condition',
-            'language', 'is_available', 'borrowing_count', 'created_at', 'updated_at'
+            'language', 'is_available', 'borrowing_count', 'active_borrowings_count',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_borrowing_count(self, obj):
         """Get total borrowing count for this book."""
         return obj.get_borrowing_count()
+    
+    def get_active_borrowings_count(self, obj):
+        """Get active borrowings count for this book."""
+        return obj.get_active_borrowings_count()
     
     def validate_total_copies(self, value):
         """Ensure total copies is at least 1."""

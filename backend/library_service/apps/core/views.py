@@ -217,6 +217,17 @@ class BookViewSet(viewsets.ModelViewSet):
             return [IsAdminOrLibrarian()]
         return [IsAuthenticated()]
     
+    def destroy(self, request, *args, **kwargs):
+        """Prevent deleting books with active borrowings."""
+        book = self.get_object()
+        active_borrowings = book.borrowing_set.filter(returned_at__isnull=True)
+        if active_borrowings.exists():
+            return Response(
+                {'error': 'Cannot delete book with active borrowings.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
+    
     @action(detail=True, methods=['get'])
     def borrowing_history(self, request, pk=None):
         """
