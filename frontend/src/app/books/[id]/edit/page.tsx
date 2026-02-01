@@ -120,20 +120,44 @@ export default function EditBookPage() {
     if (!validate() || !bookId) return
 
     try {
+      const payload: any = {
+        title: formData.title.trim(),
+        author: formData.author.trim(),
+        total_copies: formData.total_copies,
+        available_copies: formData.available_copies,
+        condition: formData.condition,
+        language: formData.language,
+      }
+      
+      // Include optional fields explicitly
+      if (formData.isbn.trim()) {
+        payload.isbn = formData.isbn.trim()
+      } else {
+        payload.isbn = null
+      }
+      
+      if (formData.publisher.trim()) {
+        payload.publisher = formData.publisher.trim()
+      } else {
+        payload.publisher = null
+      }
+      
+      if (formData.publication_year) {
+        payload.publication_year = Number(formData.publication_year)
+      } else {
+        payload.publication_year = null
+      }
+      
+      // Always include description field
+      if (formData.description.trim()) {
+        payload.description = formData.description.trim()
+      } else {
+        payload.description = null
+      }
+      
       await updateBook.mutateAsync({
         id: bookId,
-        data: {
-          isbn: formData.isbn || undefined,
-          title: formData.title.trim(),
-          author: formData.author.trim(),
-          publisher: formData.publisher || undefined,
-          publication_year: formData.publication_year ? Number(formData.publication_year) : undefined,
-          description: formData.description || undefined,
-          total_copies: formData.total_copies,
-          available_copies: formData.available_copies,
-          condition: formData.condition,
-          language: formData.language,
-        },
+        data: payload,
       })
       router.push(`/books/${bookId}`)
     } catch (err: any) {

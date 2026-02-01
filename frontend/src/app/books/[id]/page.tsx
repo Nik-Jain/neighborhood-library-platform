@@ -110,7 +110,7 @@ export default function BookDetailsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase">Book Information</h2>
@@ -145,7 +145,7 @@ export default function BookDetailsPage() {
         {book.description && (
           <div className="mt-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase">Description</h2>
-            <p className="mt-2 text-gray-700">{book.description}</p>
+            <p className="mt-2 text-gray-700 break-words" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{book.description}</p>
           </div>
         )}
       </div>
