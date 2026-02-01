@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useMembersQuery, useCreateMemberMutation } from '@/hooks/use-members'
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { useMembersQuery, useDeleteMemberMutation } from '@/hooks/use-members'
+import { Plus, Edit, Trash2, Eye, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 
@@ -11,9 +11,27 @@ export default function MembersPage() {
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading } = useMembersQuery({ page, search: searchQuery })
-  const createMutation = useCreateMemberMutation()
+  const deleteMember = useDeleteMemberMutation()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const members = data?.data?.results || []
+
+  const handleDelete = async (id: string) => {
+    if (!isAdminOrLibrarian()) return
+    const confirmed = window.confirm('Are you sure you want to delete this member?')
+    if (!confirmed) return
+    try {
+      setDeletingId(id)
+      setDeleteError(null)
+      await deleteMember.mutateAsync(id)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || 'Failed to delete member. Please try again.'
+      setDeleteError(errorMessage)
+    } finally {
+      setDeletingId((current) => (current === id ? null : current))
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -29,6 +47,21 @@ export default function MembersPage() {
           </Link>
         )}
       </div>
+
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{deleteError}</p>
+          </div>
+          <button
+            onClick={() => setDeleteError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">
@@ -52,7 +85,7 @@ export default function MembersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Membership</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Active Loans</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Active Borrowings</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
               </tr>
             </thead>
@@ -102,7 +135,12 @@ export default function MembersPage() {
                           >
                             <Edit className="w-4 h-4" />
                           </Link>
-                          <button className="text-red-600 hover:text-red-700">
+                          <button
+                            onClick={() => handleDelete(member.id)}
+                            disabled={deletingId === member.id}
+                            className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                            aria-label="Delete member"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </>
