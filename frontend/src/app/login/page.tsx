@@ -28,8 +28,23 @@ export default function LoginPage() {
 
       const { token, member } = response.data
 
-      // Store auth data
-      setAuth(member, token)
+      // Fetch user info with groups
+      try {
+        const userResponse = await apiClient.get('/auth/me/', {
+          headers: { Authorization: `Token ${token}` }
+        })
+        
+        const userWithGroups = {
+          ...member,
+          groups: userResponse.data.user?.groups || [],
+        }
+        
+        // Store auth data with groups
+        setAuth(userWithGroups, token)
+      } catch (userErr) {
+        // Fallback if /auth/me/ fails
+        setAuth(member, token)
+      }
 
       // Redirect to dashboard
       router.push('/')

@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useMembersQuery, useCreateMemberMutation } from '@/hooks/use-members'
 import { Plus, Edit, Trash2, Eye } from 'lucide-react'
 import Link from 'next/link'
+import { useAuthStore } from '@/store/auth'
 
 export default function MembersPage() {
+  const { isAdminOrLibrarian } = useAuthStore()
   const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const { data, isLoading } = useMembersQuery({ page, search: searchQuery })
@@ -17,13 +19,15 @@ export default function MembersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Members</h1>
-        <Link
-          href="/members/new"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Add Member
-        </Link>
+        {isAdminOrLibrarian() && (
+          <Link
+            href="/members/new"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Add Member
+          </Link>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow">
@@ -90,15 +94,19 @@ export default function MembersPage() {
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <Link
-                        href={`/members/${member.id}/edit`}
-                        className="text-primary-600 hover:text-primary-700"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                      <button className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdminOrLibrarian() && (
+                        <>
+                          <Link
+                            href={`/members/${member.id}/edit`}
+                            className="text-primary-600 hover:text-primary-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                          <button className="text-red-600 hover:text-red-700">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))

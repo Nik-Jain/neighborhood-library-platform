@@ -50,12 +50,46 @@ class MemberViewSet(viewsets.ModelViewSet):
             return [IsAdminOrLibrarian()]
         return [IsAuthenticated()]
     
+    def get_queryset(self):
+        """Filter members: MEMBERs see only their own profile; ADMIN/LIBRARIAN see all."""
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Check if user is ADMIN or LIBRARIAN
+        if user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            return queryset
+
+        # MEMBERs see only their own profile
+        try:
+            member = Member.objects.get(email=user.username)
+            return queryset.filter(id=member.id)
+        except Member.DoesNotExist:
+            return queryset.none()
+    
     @action(detail=True, methods=['get'])
     def borrowing_history(self, request, pk=None):
         """
         Get the borrowing history of a member.
+        Members can only view their own history; ADMIN/LIBRARIAN can view any.
         """
         member = self.get_object()
+        user = self.request.user
+        
+        # Check if member user is trying to view someone else's history
+        if not user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            try:
+                user_member = Member.objects.get(email=user.username)
+                if user_member.id != member.id:
+                    return Response(
+                        {'error': 'You can only view your own borrowing history.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Member.DoesNotExist:
+                return Response(
+                    {'error': 'Unauthorized'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
         borrowings = member.borrowing_set.all().order_by('-borrowed_at')
         
         page = self.paginate_queryset(borrowings)
@@ -70,8 +104,26 @@ class MemberViewSet(viewsets.ModelViewSet):
     def active_borrowings(self, request, pk=None):
         """
         Get currently active borrowings for a member.
+        Members can only view their own; ADMIN/LIBRARIAN can view any.
         """
         member = self.get_object()
+        user = self.request.user
+        
+        # Check if member user is trying to view someone else's borrowings
+        if not user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            try:
+                user_member = Member.objects.get(email=user.username)
+                if user_member.id != member.id:
+                    return Response(
+                        {'error': 'You can only view your own active borrowings.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Member.DoesNotExist:
+                return Response(
+                    {'error': 'Unauthorized'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
         borrowings = member.get_active_borrowings()
         
         serializer = BorrowingListSerializer(borrowings, many=True)
@@ -81,8 +133,26 @@ class MemberViewSet(viewsets.ModelViewSet):
     def overdue_borrowings(self, request, pk=None):
         """
         Get overdue borrowings for a member.
+        Members can only view their own; ADMIN/LIBRARIAN can view any.
         """
         member = self.get_object()
+        user = self.request.user
+        
+        # Check if member user is trying to view someone else's overdue borrowings
+        if not user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            try:
+                user_member = Member.objects.get(email=user.username)
+                if user_member.id != member.id:
+                    return Response(
+                        {'error': 'You can only view your own overdue borrowings.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Member.DoesNotExist:
+                return Response(
+                    {'error': 'Unauthorized'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
         borrowings = member.get_overdue_borrowings()
         
         serializer = BorrowingListSerializer(borrowings, many=True)
@@ -327,35 +397,39 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def overdue(self, request):
         """
         Get all overdue borrowings.
+        Respects role-based filtering: MEMBERs see only their own; ADMIN/LIBRARIAN see all.
         """
-        overdue_borrowings = Borrowing.objects.filter(
+        # Start with the role-filtered queryset from get_queryset()
+        queryset = self.get_queryset().filter(
             returned_at__isnull=True,
             due_date__lt=timezone.now().date()
         ).order_by('due_date')
         
-        page = self.paginate_queryset(overdue_borrowings)
+        page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = BorrowingListSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         
-        serializer = BorrowingListSerializer(overdue_borrowings, many=True)
+        serializer = BorrowingListSerializer(queryset, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def active(self, request):
         """
         Get all active borrowings.
+        Respects role-based filtering: MEMBERs see only their own; ADMIN/LIBRARIAN see all.
         """
-        active_borrowings = Borrowing.objects.filter(
+        # Start with the role-filtered queryset from get_queryset()
+        queryset = self.get_queryset().filter(
             returned_at__isnull=True
         ).order_by('-borrowed_at')
         
-        page = self.paginate_queryset(active_borrowings)
+        page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = BorrowingListSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         
-        serializer = BorrowingListSerializer(active_borrowings, many=True)
+        serializer = BorrowingListSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
@@ -380,6 +454,24 @@ class FineViewSet(viewsets.ReadOnlyModelViewSet):
             return [IsAdminOrLibrarian()]
         return [IsAuthenticated()]
     
+    def get_queryset(self):
+        """Filter fines: MEMBERs see only their own; ADMIN/LIBRARIAN see all."""
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Check if user is ADMIN or LIBRARIAN
+        if user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            return queryset
+
+        # MEMBERs see only their own fines
+        try:
+            from .models import Member
+            member = Member.objects.get(email=user.username)
+            # Filter fines by borrowing's member
+            return queryset.filter(borrowing__member=member)
+        except Member.DoesNotExist:
+            return queryset.none()
+    
     @action(detail=True, methods=['post'])
     def mark_as_paid(self, request, pk=None):
         """
@@ -399,13 +491,15 @@ class FineViewSet(viewsets.ReadOnlyModelViewSet):
     def unpaid(self, request):
         """
         Get all unpaid fines.
+        Respects role-based filtering: MEMBERs see only their own; ADMIN/LIBRARIAN see all.
         """
-        unpaid_fines = Fine.objects.filter(is_paid=False).order_by('-created_at')
+        # Start with the role-filtered queryset from get_queryset()
+        queryset = self.get_queryset().filter(is_paid=False).order_by('-created_at')
         
-        page = self.paginate_queryset(unpaid_fines)
+        page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = FineSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         
-        serializer = FineSerializer(unpaid_fines, many=True)
+        serializer = FineSerializer(queryset, many=True)
         return Response(serializer.data)
