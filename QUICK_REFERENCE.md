@@ -7,14 +7,45 @@
 git clone <your-repo-url>
 cd neighborhood-library-platform
 
-# 2. Configure environment
+# 2. Quick Start (Development/Demo)
+./start.sh
+
+# OR Manual Setup:
 cp .env.example .env
 nano .env  # Update SECRET_KEY, DB_PASSWORD, ALLOWED_HOSTS
-
-# 3. Deploy
 docker-compose up -d
 
 # Done! Access at http://localhost:3000
+```
+
+## Deployment Scripts
+
+### Development/Demo (Automated)
+```bash
+./start.sh
+# This script will:
+# - Check prerequisites
+# - Create .env if missing
+# - Build and start all services
+# - Run migrations and seed data
+# - Create admin user
+```
+
+### Production Deployment
+```bash
+./start-prod.sh
+# This script will:
+# - Validate production configuration
+# - Backup existing data
+# - Deploy with production settings
+# - Verify deployment
+# - Provide post-deployment checklist
+```
+
+### Validation Only
+```bash
+./validate-docker.sh
+# Run before deployment to catch configuration issues
 ```
 
 ## Essential Commands
