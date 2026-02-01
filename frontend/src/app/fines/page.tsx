@@ -1,18 +1,34 @@
 'use client'
 
 import { useState } from 'react'
-import { useFinesQuery, useUnpaidFinesQuery } from '@/hooks/use-fines'
-import { AlertTriangle } from 'lucide-react'
+import { useFinesQuery, useUnpaidFinesQuery, useMarkAsPaidMutation } from '@/hooks/use-fines'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 
 export default function FinesPage() {
   const [showUnpaidOnly, setShowUnpaidOnly] = useState(true)
   const [page, setPage] = useState(1)
+  const [markingAsPaidId, setMarkingAsPaidId] = useState<string | null>(null)
 
   const query = showUnpaidOnly ? useUnpaidFinesQuery({ page }) : useFinesQuery({ page })
   const { data, isLoading } = query
+  const markAsPaidMutation = useMarkAsPaidMutation()
 
   const fines = data?.data?.results || []
   const totalAmount = fines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0)
+
+  const handleMarkAsPaid = async (fineId: string) => {
+    const confirmed = window.confirm('Mark this fine as paid?')
+    if (!confirmed) return
+    try {
+      setMarkingAsPaidId(fineId)
+      await markAsPaidMutation.mutateAsync(fineId)
+    } catch (error) {
+      console.error('Failed to mark fine as paid:', error)
+      alert('Failed to mark fine as paid. Please try again.')
+    } finally {
+      setMarkingAsPaidId(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -37,7 +53,9 @@ export default function FinesPage() {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-600">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Total Fines (Unpaid)</p>
+              <p className="text-gray-600 text-sm font-medium">
+                {showUnpaidOnly ? 'Total Fines (Unpaid)' : 'Total Fines'}
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">${totalAmount.toFixed(2)}</p>
             </div>
             <AlertTriangle className="w-12 h-12 text-red-600" />
@@ -61,26 +79,27 @@ export default function FinesPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Reason</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     Loading...
                   </td>
                 </tr>
               ) : fines.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No fines found
                   </td>
                 </tr>
               ) : (
                 fines.map((fine) => (
                   <tr key={fine.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">-</td>
-                    <td className="px-6 py-4 text-gray-600">-</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{fine.member_name || '-'}</td>
+                    <td className="px-6 py-4 text-gray-600">{fine.book_title || '-'}</td>
                     <td className="px-6 py-4 font-medium text-gray-900">${parseFloat(fine.amount).toFixed(2)}</td>
                     <td className="px-6 py-4 text-gray-600">{fine.reason}</td>
                     <td className="px-6 py-4">
@@ -96,6 +115,19 @@ export default function FinesPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(fine.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      {!fine.is_paid && (
+                        <button
+                          onClick={() => handleMarkAsPaid(fine.id)}
+                          disabled={markingAsPaidId === fine.id}
+                          className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                          aria-label="Mark as paid"
+                          title="Mark as paid"
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
