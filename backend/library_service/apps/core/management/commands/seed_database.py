@@ -47,6 +47,19 @@ class Command(BaseCommand):
                 password='admin123'
             )
             self.stdout.write(self.style.SUCCESS('Created superuser: admin'))
+        
+        # Also create an admin member account for API login
+        if not Member.objects.filter(email='admin@library.local').exists():
+            admin_member = Member.objects.create(
+                first_name='Admin',
+                last_name='User',
+                email='admin@library.local',
+                membership_number='ADMIN-001',
+                membership_status='active'
+            )
+            admin_member.set_password('admin123')
+            admin_member.save()
+            self.stdout.write(self.style.SUCCESS('Created admin member: admin@library.local'))
     
     def _create_members(self, count=10):
         """Create sample members."""
@@ -64,6 +77,9 @@ class Command(BaseCommand):
                 }
             )
             if created:
+                # Set password for new members
+                member.set_password('password123')
+                member.save()
                 members.append(member)
         
         return members

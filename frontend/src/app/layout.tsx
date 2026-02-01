@@ -1,8 +1,9 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Navigation from '../components/navigation'
+import { useAuthStore } from '../store/auth'
 import './globals.css'
 
 const queryClient = new QueryClient({
@@ -14,15 +15,30 @@ const queryClient = new QueryClient({
   },
 })
 
+function LayoutContent({ children }: { children: ReactNode }) {
+  const { loadFromStorage } = useAuthStore()
+
+  useEffect(() => {
+    // Load auth state from localStorage on app startup
+    loadFromStorage()
+  }, [loadFromStorage])
+
+  return (
+    <>
+      <Navigation />
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {children}
+      </main>
+    </>
+  )
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-gray-50">
         <QueryClientProvider client={queryClient}>
-          <Navigation />
-          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            {children}
-          </main>
+          <LayoutContent>{children}</LayoutContent>
         </QueryClientProvider>
       </body>
     </html>
