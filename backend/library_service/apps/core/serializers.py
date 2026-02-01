@@ -205,11 +205,13 @@ class FineSerializer(serializers.ModelSerializer):
     Serializer for the Fine model.
     """
     borrowing_detail = BorrowingListSerializer(source='borrowing', read_only=True)
+    member_name = serializers.CharField(source='borrowing.member.full_name', read_only=True)
+    book_title = serializers.CharField(source='borrowing.book.title', read_only=True)
     
     class Meta:
         model = Fine
         fields = [
-            'id', 'borrowing', 'borrowing_detail', 'amount', 'reason',
-            'is_paid', 'paid_at', 'created_at', 'updated_at'
+            'id', 'borrowing', 'borrowing_detail', 'member_name', 'book_title',
+            'amount', 'reason', 'is_paid', 'paid_at', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
