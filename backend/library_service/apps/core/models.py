@@ -4,7 +4,7 @@ Models for the core library service application.
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password, check_password, identify_hasher
 from datetime import timedelta
 import uuid
 
@@ -67,6 +67,22 @@ class Member(TimestampedModel):
     def check_password(self, raw_password):
         """Check if the provided password matches the stored hash."""
         return check_password(raw_password, self.password)
+
+    def _password_is_hashed(self):
+        """Return True if the stored password looks like a Django hash."""
+        if not self.password:
+            return False
+        try:
+            identify_hasher(self.password)
+            return True
+        except Exception:
+            return False
+
+    def save(self, *args, **kwargs):
+        """Ensure passwords are stored hashed."""
+        if self.password and not self._password_is_hashed():
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
     
     def get_active_borrowings(self):
         """Get all currently active borrowings for this member."""
