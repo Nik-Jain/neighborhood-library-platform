@@ -30,7 +30,7 @@ export default function LoginPage() {
 
       // Fetch user info with groups
       try {
-        const userResponse = await apiClient.get('/auth/me/', {
+        const userResponse = await apiClient.get('/auth/user/', {
           headers: { Authorization: `Token ${token}` }
         })
         
@@ -42,7 +42,7 @@ export default function LoginPage() {
         // Store auth data with groups
         setAuth(userWithGroups, token)
       } catch (userErr) {
-        // Fallback if /auth/me/ fails
+        // Fallback if /auth/user/ fails
         setAuth(member, token)
       }
 
