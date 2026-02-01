@@ -353,7 +353,7 @@ export default function SignupPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-600 text-sm mt-6">
-          © 2024 Neighborhood Library Platform. All rights reserved.
+          © 2026 Neighborhood Library Platform. All rights reserved.
         </p>
       </div>
     </div>
