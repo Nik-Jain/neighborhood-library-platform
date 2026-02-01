@@ -48,6 +48,8 @@ class MemberViewSet(viewsets.ModelViewSet):
         """Apply different permissions based on action."""
         if self.action in ['create', 'update', 'partial_update', 'destroy', 'suspend', 'activate']:
             return [IsAdminOrLibrarian()]
+        if self.action in ['change_password']:
+            return [IsAuthenticated()]  # Members can change their own password
         return [IsAuthenticated()]
     
     def get_queryset(self):
@@ -191,6 +193,90 @@ class MemberViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(member)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """
+        Get the current user's profile (member details).
+        Only available to authenticated members.
+        """
+        try:
+            member = Member.objects.get(email=request.user.username)
+            serializer = self.get_serializer(member)
+            return Response(serializer.data)
+        except Member.DoesNotExist:
+            return Response(
+                {'error': 'Member profile not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=True, methods=['post'])
+    def change_password(self, request, pk=None):
+        """
+        Change password for a member.
+        Members can only change their own password; ADMIN/LIBRARIAN can change any member's password.
+        """
+        member = self.get_object()
+        user = self.request.user
+        
+        # Check authorization: member can only change their own password
+        if not user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            try:
+                user_member = Member.objects.get(email=user.username)
+                if user_member.id != member.id:
+                    return Response(
+                        {'error': 'You can only change your own password.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Member.DoesNotExist:
+                return Response(
+                    {'error': 'Unauthorized'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        new_password_confirm = request.data.get('new_password_confirm')
+        
+        # Validate inputs
+        if not old_password or not new_password or not new_password_confirm:
+            return Response(
+                {'error': 'old_password, new_password, and new_password_confirm are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_password != new_password_confirm:
+            return Response(
+                {'error': 'New passwords do not match.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # For admins/librarians, skip old password verification
+        if not user.groups.filter(name__in=['ADMIN', 'LIBRARIAN']).exists():
+            # Member must verify old password
+            if not member.check_password(old_password):
+                return Response(
+                    {'error': 'Old password is incorrect.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Validate new password strength
+        if len(new_password) < 6:
+            return Response(
+                {'error': 'New password must be at least 6 characters long.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Set new password
+        member.set_password(new_password)
+        member.save()
+        
+        logger.info(f"Password changed for member: {member.full_name}")
+        
+        return Response({
+            'success': True,
+            'message': 'Password changed successfully.'
+        })
 
 
 class BookViewSet(viewsets.ModelViewSet):
