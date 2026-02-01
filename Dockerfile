@@ -4,7 +4,8 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
 
 # Set work directory
 WORKDIR /app
@@ -14,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     gcc \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -27,14 +29,23 @@ RUN pip install --upgrade pip setuptools wheel && \
 COPY backend/library_service ./library_service
 COPY backend/manage.py .
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/staticfiles /app/media
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/staticfiles /app/media && \
+    chmod -R 755 /app
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || true
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health/ || exit 1
 
 # Expose port
 EXPOSE 8000
 
 # Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "library_service.config.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "library_service.config.wsgi:application"]
