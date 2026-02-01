@@ -21,6 +21,12 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Clear any existing auth state first to prevent permission leaks
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+      }
+
       const response = await apiClient.post('/auth/login/', {
         email,
         password,
@@ -28,7 +34,7 @@ export default function LoginPage() {
 
       const { token, member } = response.data
 
-      // Fetch user info with groups
+      // Fetch user info with groups using the NEW token
       try {
         const userResponse = await apiClient.get('/auth/user/', {
           headers: { Authorization: `Token ${token}` }
