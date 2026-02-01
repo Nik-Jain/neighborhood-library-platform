@@ -5,6 +5,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password, identify_hasher
+from django.contrib.auth.models import User
 from datetime import timedelta
 import uuid
 
@@ -80,6 +81,19 @@ class Member(TimestampedModel):
 
     def save(self, *args, **kwargs):
         """Ensure passwords are stored hashed."""
+        if self.pk:
+            previous_email = Member.objects.filter(pk=self.pk).values_list('email', flat=True).first()
+            if previous_email and previous_email != self.email:
+                existing_user = User.objects.filter(username=previous_email).first()
+                if existing_user:
+                    email_conflict = User.objects.filter(username=self.email).exclude(pk=existing_user.pk).exists()
+                    if not email_conflict:
+                        existing_user.username = self.email
+                        existing_user.email = self.email
+                        existing_user.first_name = self.first_name or ''
+                        existing_user.last_name = self.last_name or ''
+                        existing_user.is_active = (self.membership_status == 'active')
+                        existing_user.save()
         if self.password and not self._password_is_hashed():
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
