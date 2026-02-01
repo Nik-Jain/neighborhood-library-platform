@@ -37,3 +37,7 @@ pylint==3.0.3
 
 # Security
 django-ratelimit==4.1.0
+
+# Protocol Buffers
+protobuf==4.25.1
+grpcio-tools==1.60.0

@@ -22,11 +22,17 @@ from .serializers import (
 from .filters import BorrowingFilterSet, BookFilterSet, MemberFilterSet
 from .pagination import StandardResultsSetPagination
 from .permissions import IsAdmin, IsAdminOrLibrarian, IsMember
+from .protobuf_mixins import (
+    MemberProtobufMixin,
+    BookProtobufMixin,
+    BorrowingProtobufMixin,
+    FineProtobufMixin
+)
 
 logger = logging.getLogger(__name__)
 
 
-class MemberViewSet(viewsets.ModelViewSet):
+class MemberViewSet(MemberProtobufMixin, viewsets.ModelViewSet):
     """
     ViewSet for managing library members.
     
@@ -279,7 +285,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         })
 
 
-class BookViewSet(viewsets.ModelViewSet):
+class BookViewSet(BookProtobufMixin, viewsets.ModelViewSet):
     """
     ViewSet for managing library books.
     
@@ -373,7 +379,7 @@ class BookViewSet(viewsets.ModelViewSet):
         })
 
 
-class BorrowingViewSet(viewsets.ModelViewSet):
+class BorrowingViewSet(BorrowingProtobufMixin, viewsets.ModelViewSet):
     """
     ViewSet for managing borrowing operations.
     
@@ -544,7 +550,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class FineViewSet(viewsets.ReadOnlyModelViewSet):
+class FineViewSet(FineProtobufMixin, viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for viewing fines.
     - List/Read: Any authenticated user

@@ -152,6 +152,18 @@ REST_FRAMEWORK = {
         'user': '1000/hour',
     },
     'EXCEPTION_HANDLER': 'library_service.apps.core.exceptions.custom_exception_handler',
+    # Protocol Buffer support - clients can request protobuf by setting Accept header
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'library_service.apps.core.protobuf_renderers.ProtobufRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'library_service.apps.core.protobuf_renderers.ProtobufParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
 }
 
 # In development (DEBUG=True) it's sometimes useful to allow unauthenticated
