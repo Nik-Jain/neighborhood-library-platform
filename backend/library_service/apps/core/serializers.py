@@ -138,6 +138,7 @@ class BorrowingDetailSerializer(serializers.ModelSerializer):
     """
     member = MemberSerializer(read_only=True)
     book = BookSerializer(read_only=True)
+    fine = FineSummarySerializer(read_only=True)
     member_id = serializers.UUIDField(write_only=True)
     book_id = serializers.UUIDField(write_only=True)
     status = serializers.CharField(read_only=True)
@@ -149,7 +150,7 @@ class BorrowingDetailSerializer(serializers.ModelSerializer):
         model = Borrowing
         fields = [
             'id', 'member', 'member_id', 'book', 'book_id',
-            'borrowed_at', 'due_date', 'returned_at', 'notes',
+            'borrowed_at', 'due_date', 'returned_at', 'notes', 'fine',
             'status', 'is_overdue', 'days_until_due', 'days_overdue',
             'created_at', 'updated_at'
         ]
