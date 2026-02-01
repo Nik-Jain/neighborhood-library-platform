@@ -128,33 +128,97 @@ class ProtobufParser(parsers.BaseParser):
         """
         Parse incoming protobuf binary data to Python dict.
         
-        Expects the view to set protobuf_message_class attribute.
+        Expects the view to set protobuf_request_class or protobuf_message_class attribute.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             # Get the protobuf message class from view
             view = parser_context.get('view') if parser_context else None
-            message_class = getattr(view, 'protobuf_message_class', None) if view else None
+            request = parser_context.get('request') if parser_context else None
+            
+            logger.info(f"ProtobufParser.parse() called for {request.path if request else 'unknown'}")
+            logger.info(f"Media type: {media_type}")
+            
+            # Try protobuf_request_class first (for auth endpoints)
+            message_class = getattr(view, 'protobuf_request_class', None) if view else None
+            
+            # Fall back to protobuf_message_class (for data endpoints)
+            if message_class is None:
+                message_class = getattr(view, 'protobuf_message_class', None) if view else None
+            
+            # Try to infer from URL path
+            if message_class is None and request:
+                message_class = self._infer_message_class(request.path)
+                logger.info(f"Inferred message class from URL: {message_class}")
             
             if message_class is None:
-                raise ParseError('Protobuf message class not specified')
+                logger.error(f"Could not determine message class for {request.path if request else 'unknown'}")
+                raise ParseError('Protobuf message class not specified for this endpoint')
             
             # Read the binary data
             data = stream.read()
+            logger.info(f"Received {len(data)} bytes of data")
+            logger.info(f"First 20 bytes (hex): {data[:20].hex()}")
+            
+            # Check if data looks like JSON (for better error messages)
+            if data.startswith(b'{') or data.startswith(b'['):
+                logger.error("Received JSON data instead of protobuf!")
+                raise ParseError(
+                    'Received JSON data but expected protobuf. '
+                    'This usually means protobuf encoding failed on the client side. '
+                    'Make sure Content-Type and data format match. '
+                    'Consider using JSON instead (Accept: application/json).'
+                )
+            
+            if not data:
+                logger.error("Empty request body")
+                raise ParseError('Empty request body')
             
             # Parse protobuf message
             message = message_class()
-            message.ParseFromString(data)
+            try:
+                message.ParseFromString(data)
+                logger.info(f"Successfully parsed {message_class.__name__}")
+            except Exception as e:
+                logger.error(f"Failed to parse protobuf: {str(e)}")
+                raise ParseError(
+                    f'Invalid protobuf data: {str(e)}. '
+                    f'Expected {message_class.__name__} message.'
+                )
             
-            # Convert to dict
+            # Convert to dict using correct MessageToDict parameters
             return MessageToDict(
                 message,
                 preserving_proto_field_name=True,
-                including_default_value_fields=False
+                always_print_fields_with_no_presence=False
             )
         except DecodeError as e:
+            logger.error(f"DecodeError: {str(e)}")
             raise ParseError(f'Invalid protobuf data: {str(e)}')
+        except ParseError:
+            raise
         except Exception as e:
+            logger.error(f"Unexpected error in ProtobufParser: {str(e)}")
             raise ParseError(f'Error parsing protobuf: {str(e)}')
+    
+    def _infer_message_class(self, path):
+        """Infer protobuf message class from URL path."""
+        if '/auth/login/' in path:
+            return library_pb2.LoginRequest
+        elif '/auth/signup/' in path:
+            return library_pb2.SignupRequest
+        elif '/members/' in path:
+            return library_pb2.Member
+        elif '/books/' in path:
+            return library_pb2.Book
+        elif '/borrowings/' in path:
+            return library_pb2.Borrowing
+        elif '/fines/' in path:
+            return library_pb2.Fine
+        return None
+
 
 
 class ProtobufJSONRenderer(renderers.JSONRenderer):

@@ -124,6 +124,7 @@ message LoginRequest {
 message LoginResponse {
   string token = 1;
   Member member = 2;
+  string message = 3;
 }
 
 message SignupRequest {
@@ -138,6 +139,7 @@ message SignupRequest {
 message SignupResponse {
   string token = 1;
   Member member = 2;
+  string message = 3;
 }
 
 // Error response

@@ -55,3 +55,34 @@ class FineProtobufMixin(ProtobufSupportMixin):
     """Protobuf support for Fine ViewSet."""
     protobuf_message_class = library_pb2.Fine
     protobuf_list_message_class = library_pb2.FineList
+
+
+class AuthProtobufMixin:
+    """
+    Mixin for APIView-based auth endpoints to support protobuf.
+    This is simpler than viewset mixin since APIViews don't have actions.
+    """
+    protobuf_request_class = None
+    protobuf_response_class = None
+    
+    def finalize_response(self, request, response, *args, **kwargs):
+        """Attach protobuf message classes for auth responses."""
+        response = super().finalize_response(request, response, *args, **kwargs)
+        
+        # For auth endpoints, always use the response class
+        if self.protobuf_response_class:
+            response.protobuf_message_class = self.protobuf_response_class
+        
+        return response
+
+
+class LoginProtobufMixin(AuthProtobufMixin):
+    """Protobuf support for Login endpoint."""
+    protobuf_request_class = library_pb2.LoginRequest
+    protobuf_response_class = library_pb2.LoginResponse
+
+
+class SignupProtobufMixin(AuthProtobufMixin):
+    """Protobuf support for Signup endpoint."""
+    protobuf_request_class = library_pb2.SignupRequest
+    protobuf_response_class = library_pb2.SignupResponse

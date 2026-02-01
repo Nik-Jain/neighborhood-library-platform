@@ -8,14 +8,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.models import User
 from .auth_serializers import SignupSerializer, LoginSerializer, MemberDetailSerializer
 from .models import Member, APIToken
+from .protobuf_mixins import LoginProtobufMixin, SignupProtobufMixin
 import secrets
 import hashlib
 
 
-class SignupView(APIView):
+class SignupView(SignupProtobufMixin, APIView):
     """
     API view for user signup/registration.
     POST: Create a new member account
+    Supports both JSON and Protocol Buffer formats
     """
     permission_classes = [AllowAny]
     
@@ -62,10 +64,11 @@ class SignupView(APIView):
         )
 
 
-class LoginView(APIView):
+class LoginView(LoginProtobufMixin, APIView):
     """
     API view for user login.
     POST: Authenticate user and return token
+    Supports both JSON and Protocol Buffer formats
     """
     permission_classes = [AllowAny]
     
