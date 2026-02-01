@@ -25,6 +25,8 @@ services:
       - library_network
 
   # Django API Server
+  # Supports both JSON and Protocol Buffer request/response formats
+  # Content-Type negotiation: application/json or application/x-protobuf
   api:
     build:
       context: .
@@ -67,6 +69,8 @@ services:
       - library_network
 
   # Frontend (Next.js)
+  # Supports both JSON and Protocol Buffer API communication
+  # Set NEXT_PUBLIC_USE_PROTOBUF=true in frontend/.env for protobuf encoding
   frontend:
     build:
       context: ./frontend
