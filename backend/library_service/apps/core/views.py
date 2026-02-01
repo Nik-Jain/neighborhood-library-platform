@@ -65,6 +65,16 @@ class MemberViewSet(viewsets.ModelViewSet):
             return queryset.filter(id=member.id)
         except Member.DoesNotExist:
             return queryset.none()
+
+    def destroy(self, request, *args, **kwargs):
+        """Prevent deleting members with active borrowings."""
+        member = self.get_object()
+        if member.get_active_borrowings().exists():
+            return Response(
+                {'error': 'Cannot delete member with active borrowings.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
     
     @action(detail=True, methods=['get'])
     def borrowing_history(self, request, pk=None):
