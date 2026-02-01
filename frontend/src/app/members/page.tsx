@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMembersQuery, useDeleteMemberMutation } from '@/hooks/use-members'
-import { Plus, Edit, Trash2, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 
@@ -13,6 +13,7 @@ export default function MembersPage() {
   const { data, isLoading } = useMembersQuery({ page, search: searchQuery })
   const deleteMember = useDeleteMemberMutation()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const members = data?.data?.results || []
 
@@ -22,7 +23,11 @@ export default function MembersPage() {
     if (!confirmed) return
     try {
       setDeletingId(id)
+      setDeleteError(null)
       await deleteMember.mutateAsync(id)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || 'Failed to delete member. Please try again.'
+      setDeleteError(errorMessage)
     } finally {
       setDeletingId((current) => (current === id ? null : current))
     }
@@ -42,6 +47,21 @@ export default function MembersPage() {
           </Link>
         )}
       </div>
+
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{deleteError}</p>
+          </div>
+          <button
+            onClick={() => setDeleteError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b border-gray-200">

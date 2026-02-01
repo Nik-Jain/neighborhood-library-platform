@@ -16,6 +16,7 @@ export default function MemberDetailsPage() {
   const deleteMember = useDeleteMemberMutation()
   const [historyPage, setHistoryPage] = useState(1)
   const borrowingHistoryQuery = useMemberBorrowingHistoryQuery(memberId, { page: historyPage })
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const member = memberQuery.data?.data
   const borrowingHistory = borrowingHistoryQuery.data?.data?.results || []
@@ -24,8 +25,14 @@ export default function MemberDetailsPage() {
     if (!isAdminOrLibrarian() || !memberId) return
     const confirmed = window.confirm('Are you sure you want to delete this member?')
     if (!confirmed) return
-    await deleteMember.mutateAsync(memberId)
-    router.push('/members')
+    try {
+      setDeleteError(null)
+      await deleteMember.mutateAsync(memberId)
+      router.push('/members')
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || 'Failed to delete member. Please try again.'
+      setDeleteError(errorMessage)
+    }
   }
 
   if (memberQuery.isLoading) {
@@ -86,6 +93,21 @@ export default function MemberDetailsPage() {
           )}
         </div>
       </div>
+
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{deleteError}</p>
+          </div>
+          <button
+            onClick={() => setDeleteError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
