@@ -24,6 +24,9 @@ class MemberSerializer(serializers.ModelSerializer):
             'overdue_borrowings_count'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'membership_number': {'required': False, 'allow_blank': True},
+        }
     
     def get_active_borrowings_count(self, obj):
         """Get count of active borrowings."""
@@ -40,6 +43,14 @@ class MemberSerializer(serializers.ModelSerializer):
         if Member.objects.filter(email=value).exists():
             raise serializers.ValidationError("A member with this email already exists.")
         return value
+
+    def create(self, validated_data):
+        """Create a member and auto-assign membership number when omitted."""
+        membership_number = validated_data.get('membership_number')
+        if not membership_number:
+            import uuid
+            validated_data['membership_number'] = f"LIB-{uuid.uuid4().hex[:8].upper()}"
+        return super().create(validated_data)
 
 
 class BookSerializer(serializers.ModelSerializer):
