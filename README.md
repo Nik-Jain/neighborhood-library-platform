@@ -1,4 +1,129 @@
-# Neighborhood Library Platform
+# Neighborhood Library Platform (Backend)
+
+Production-grade Django REST API for a neighborhood library system. Provides role-based access control, token authentication, and CRUD workflows for members, books, borrowings, and fines.
+
+## Documentation
+
+- Architecture: [docs/architecture.md](docs/architecture.md)
+- API reference: [docs/api.md](docs/api.md)
+- Contributing: [docs/contributing.md](docs/contributing.md)
+
+## Quick Start (Docker)
+
+### Option A: Scripted setup (recommended)
+
+```bash
+cp .env.example .env
+./start.sh
+```
+
+### Option B: Manual Docker Compose
+
+```bash
+cp .env.example .env
+docker-compose up -d --build
+```
+
+### Access points
+
+- API: http://localhost:8000/api/v1
+- API docs (Swagger): http://localhost:8000/api/docs/
+- OpenAPI schema: http://localhost:8000/api/schema/
+- Admin: http://localhost:8000/admin/
+- Health check: http://localhost:8000/api/health/
+
+## Local Development (Backend)
+
+```bash
+cp .env.example .env
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r ../requirements.txt
+python manage.py migrate
+python manage.py bootstrap_roles
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+### Optional: seed sample data
+
+```bash
+cd backend
+python manage.py seed_database
+```
+
+## Frontend (Optional)
+
+```bash
+cd frontend
+npm install
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1" > .env.local
+npm run dev
+```
+
+## Environment Configuration
+
+All configuration is driven by .env. Copy from .env.example and update as needed.
+
+Key variables:
+
+- DEBUG
+- SECRET_KEY
+- ALLOWED_HOSTS
+- DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+- CORS_ALLOWED_ORIGINS
+- NEXT_PUBLIC_API_URL
+- API_PORT, FRONTEND_PORT, NGINX_PORT
+- DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL, DJANGO_SUPERUSER_PASSWORD
+
+## Authentication
+
+This API uses token authentication. Obtain a token via signup or login:
+
+- POST /api/v1/auth/signup/
+- POST /api/v1/auth/login/
+
+Include the token in requests:
+
+```
+Authorization: Token <token>
+```
+
+Legacy endpoint (email + password):
+
+- POST /api-token-auth/
+
+## Production Deployment
+
+```bash
+cp .env.example .env
+# Update .env with production values
+./start-prod.sh
+```
+
+Alternatively, run the production compose file directly:
+
+```bash
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+To enable Nginx in the standard compose file:
+
+```bash
+docker-compose --profile production up -d
+```
+
+## Testing
+
+```bash
+cd backend
+python manage.py test
+```
+
+---
+
+If you are looking for API details, go to [docs/api.md](docs/api.md).# Neighborhood Library Platform
 
 A comprehensive library management system built with Django REST Framework and Next.js, featuring role-based access control (RBAC) and full CRUD operations for books, members, borrowings, and fines.
 
@@ -346,10 +471,10 @@ docker-compose up -d
 
 ## 📖 Additional Documentation
 
-- [API Reference](docs/API_REFERENCE.md)
-- [Architecture Details](docs/ARCHITECTURE.md)
-- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
-- [Contributing Guidelines](docs/CONTRIBUTING.md)
+- [API Reference](docs/api.md)
+- [Architecture Details](docs/architecture.md)
+- [Deployment Guide](README.md#production-deployment)
+- [Contributing Guidelines](docs/contributing.md)
 
 ## 📄 License
 
