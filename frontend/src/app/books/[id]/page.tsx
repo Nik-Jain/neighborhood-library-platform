@@ -7,6 +7,8 @@ import { AlertCircle, Edit, Loader, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useBookQuery, useDeleteBookMutation, useBookBorrowingHistoryQuery } from '@/hooks/use-books'
 import { formatDate } from '@/lib/date'
+import ConfirmationDialog from '@/components/confirmation-dialog'
+import { useConfirmationDialog } from '@/hooks/use-confirmation-dialog'
 
 export default function BookDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,13 +20,19 @@ export default function BookDetailsPage() {
   const [historyPage, setHistoryPage] = useState(1)
   const borrowingHistoryQuery = useBookBorrowingHistoryQuery(bookId, { page: historyPage })
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const { dialogState, confirm, handleCancel } = useConfirmationDialog()
 
   const book = bookQuery.data?.data
   const borrowingHistory = borrowingHistoryQuery.data?.data?.results || []
 
   const handleDelete = async () => {
     if (!isAdminOrLibrarian() || !bookId) return
-    const confirmed = window.confirm('Are you sure you want to delete this book?')
+    const confirmed = await confirm({
+      title: 'Delete Book',
+      message: 'Are you sure you want to delete this book? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
     if (!confirmed) return
     try {
       setDeleteError(null)
@@ -249,6 +257,17 @@ export default function BookDetailsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={dialogState.isOpen}
+        title={dialogState.title}
+        message={dialogState.message}
+        confirmLabel={dialogState.confirmLabel}
+        cancelLabel={dialogState.cancelLabel}
+        variant={dialogState.variant}
+        onConfirm={dialogState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }

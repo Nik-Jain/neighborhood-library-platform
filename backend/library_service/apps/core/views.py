@@ -28,6 +28,12 @@ from .protobuf_mixins import (
     BorrowingProtobufMixin,
     FineProtobufMixin
 )
+from .services import BorrowingService
+from .exceptions import (
+    LibraryServiceException,
+    MemberHasActiveBorrowingsException,
+    BookHasActiveBorrowingsException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +84,8 @@ class MemberViewSet(MemberProtobufMixin, viewsets.ModelViewSet):
         """Prevent deleting members with active borrowings."""
         member = self.get_object()
         if member.get_active_borrowings().exists():
-            return Response(
-                {'error': 'Cannot delete member with active borrowings.'},
-                status=status.HTTP_400_BAD_REQUEST
+            raise MemberHasActiveBorrowingsException(
+                f"Member {member.full_name} has active borrowings."
             )
         return super().destroy(request, *args, **kwargs)
     
@@ -314,9 +319,8 @@ class BookViewSet(BookProtobufMixin, viewsets.ModelViewSet):
         book = self.get_object()
         active_borrowings = book.borrowing_set.filter(returned_at__isnull=True)
         if active_borrowings.exists():
-            return Response(
-                {'error': 'Cannot delete book with active borrowings.'},
-                status=status.HTTP_400_BAD_REQUEST
+            raise BookHasActiveBorrowingsException(
+                f"Book '{book.title}' has {active_borrowings.count()} active borrowing(s)."
             )
         return super().destroy(request, *args, **kwargs)
     
@@ -429,83 +433,39 @@ class BorrowingViewSet(BorrowingProtobufMixin, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """
         Create a new borrowing record (member borrows a book).
+        
+        Uses BorrowingService for transactional and concurrency-safe operation.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        try:
-            member = serializer.validated_data.pop('member')
-            book = serializer.validated_data.pop('book')
-            
-            # Update book availability
-            book.available_copies -= 1
-            book.save()
-            
-            # Create borrowing record
-            borrowing = Borrowing.objects.create(
-                member=member,
-                book=book,
-                **serializer.validated_data
-            )
-            
-            logger.info(
-                f"Book borrowed: {member.full_name} borrowed {book.title}"
-            )
-            
-            output_serializer = BorrowingDetailSerializer(borrowing)
-            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+        member_id = serializer.validated_data.get('member_id')
+        book_id = serializer.validated_data.get('book_id')
+        due_date = serializer.validated_data.get('due_date')
+        notes = serializer.validated_data.get('notes')
         
-        except Exception as e:
-            logger.error(f"Error creating borrowing: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Use service layer for transactional operation
+        borrowing = BorrowingService.create_borrowing(
+            member_id=member_id,
+            book_id=book_id,
+            due_date=due_date,
+            notes=notes
+        )
+        
+        output_serializer = BorrowingDetailSerializer(borrowing)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def return_book(self, request, pk=None):
         """
         Record the return of a borrowed book.
+        
+        Uses BorrowingService for transactional and concurrency-safe operation.
         """
         borrowing = self.get_object()
         
-        if borrowing.returned_at:
-            return Response(
-                {'error': 'This book has already been returned.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        returned_at = timezone.now()
-        days_overdue = max((returned_at.date() - borrowing.due_date).days, 0)
-
-        # Mark as returned
-        borrowing.returned_at = returned_at
-        borrowing.save()
-        
-        # Update book availability
-        borrowing.book.available_copies += 1
-        borrowing.book.save()
-        
-        # Check for overdue and create fine if needed
-        if days_overdue > 0:
-            fine_amount = days_overdue * 1.00  # $1.00 per day
-
-            Fine.objects.get_or_create(
-                borrowing=borrowing,
-                defaults={
-                    'amount': fine_amount,
-                    'reason': f"Overdue by {days_overdue} days"
-                }
-            )
-
-            logger.warning(
-                f"Fine created: {borrowing.member.full_name} "
-                f"returned {borrowing.book.title} {days_overdue} days late"
-            )
-        
-        logger.info(
-            f"Book returned: {borrowing.member.full_name} returned {borrowing.book.title}"
-        )
+        # Use service layer for transactional operation
+        borrowing, fine = BorrowingService.return_borrowing(borrowing.id)
         
         serializer = BorrowingDetailSerializer(borrowing)
         return Response(serializer.data)

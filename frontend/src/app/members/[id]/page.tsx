@@ -7,6 +7,8 @@ import { AlertCircle, Edit, Loader, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
 import { useMemberQuery, useDeleteMemberMutation, useMemberBorrowingHistoryQuery } from '@/hooks/use-members'
 import { formatDate } from '@/lib/date'
+import ConfirmationDialog from '@/components/confirmation-dialog'
+import { useConfirmationDialog } from '@/hooks/use-confirmation-dialog'
 
 export default function MemberDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,13 +20,19 @@ export default function MemberDetailsPage() {
   const [historyPage, setHistoryPage] = useState(1)
   const borrowingHistoryQuery = useMemberBorrowingHistoryQuery(memberId, { page: historyPage })
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const { dialogState, confirm, handleCancel } = useConfirmationDialog()
 
   const member = memberQuery.data?.data
   const borrowingHistory = borrowingHistoryQuery.data?.data?.results || []
 
   const handleDelete = async () => {
     if (!isAdminOrLibrarian() || !memberId) return
-    const confirmed = window.confirm('Are you sure you want to delete this member?')
+    const confirmed = await confirm({
+      title: 'Delete Member',
+      message: 'Are you sure you want to delete this member? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
     if (!confirmed) return
     try {
       setDeleteError(null)
@@ -246,6 +254,17 @@ export default function MemberDetailsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={dialogState.isOpen}
+        title={dialogState.title}
+        message={dialogState.message}
+        confirmLabel={dialogState.confirmLabel}
+        cancelLabel={dialogState.cancelLabel}
+        variant={dialogState.variant}
+        onConfirm={dialogState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }

@@ -2,8 +2,6 @@
 Serializers for the core library service application.
 """
 from rest_framework import serializers
-from django.utils import timezone
-from datetime import timedelta
 from .models import Member, Book, Borrowing, Fine
 
 
@@ -164,38 +162,30 @@ class BorrowingDetailSerializer(serializers.ModelSerializer):
         }
     
     def validate(self, data):
-        """Validate borrowing operation."""
+        """
+        Validate borrowing data.
+        
+        Note: Only validates data shape and basic existence checks.
+        Business logic validation (active status, availability, duplicates)
+        is handled by the service layer with proper locking to prevent race conditions.
+        """
         member_id = data.get('member_id')
         book_id = data.get('book_id')
         
-        # Validate member exists and is active
-        try:
-            member = Member.objects.get(id=member_id)
-        except Member.DoesNotExist:
-            raise serializers.ValidationError("Member not found.")
+        # Basic validation: check IDs are provided
+        if not member_id:
+            raise serializers.ValidationError(
+                {"member_id": "Member ID is required."}
+            )
         
-        if member.membership_status != 'active':
-            raise serializers.ValidationError("Member is not active.")
+        if not book_id:
+            raise serializers.ValidationError(
+                {"book_id": "Book ID is required."}
+            )
         
-        # Validate book exists and has available copies
-        try:
-            book = Book.objects.get(id=book_id)
-        except Book.DoesNotExist:
-            raise serializers.ValidationError("Book not found.")
-        
-        if book.available_copies <= 0:
-            raise serializers.ValidationError("Book is not available.")
-        
-        # Check if member already has this book borrowed
-        if Borrowing.objects.filter(
-            member=member,
-            book=book,
-            returned_at__isnull=True
-        ).exists():
-            raise serializers.ValidationError("Member already has this book borrowed.")
-        
-        data['member'] = member
-        data['book'] = book
+        # Note: We don't check member status, book availability, or duplicates here.
+        # The service layer handles these validations with proper database locking
+        # to prevent race conditions. Validating here would create TOCTOU bugs.
         
         return data
 

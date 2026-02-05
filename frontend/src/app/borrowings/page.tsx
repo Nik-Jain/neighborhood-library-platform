@@ -6,6 +6,8 @@ import { Plus, RotateCw, AlertTriangle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { formatDate } from '@/lib/date'
+import ConfirmationDialog from '@/components/confirmation-dialog'
+import { useConfirmationDialog } from '@/hooks/use-confirmation-dialog'
 
 export default function BorrowingsPage() {
   const { isAdminOrLibrarian } = useAuthStore()
@@ -15,6 +17,7 @@ export default function BorrowingsPage() {
   const [returningId, setReturningId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
   const [returnSuccess, setReturnSuccess] = useState<string | null>(null)
+  const { dialogState, confirm, handleCancel } = useConfirmationDialog()
 
   let query
   if (filterStatus === 'active') {
@@ -30,7 +33,12 @@ export default function BorrowingsPage() {
 
   const handleReturn = async (id: string, bookTitle: string) => {
     if (!isAdminOrLibrarian()) return
-    const confirmed = window.confirm(`Are you sure you want to mark "${bookTitle}" as returned?`)
+    const confirmed = await confirm({
+      title: 'Return Book',
+      message: `Are you sure you want to mark "${bookTitle}" as returned?`,
+      confirmLabel: 'Mark as Returned',
+      variant: 'info',
+    })
     if (!confirmed) return
     try {
       setReturningId(id)
@@ -213,6 +221,17 @@ export default function BorrowingsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={dialogState.isOpen}
+        title={dialogState.title}
+        message={dialogState.message}
+        confirmLabel={dialogState.confirmLabel}
+        cancelLabel={dialogState.cancelLabel}
+        variant={dialogState.variant}
+        onConfirm={dialogState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }

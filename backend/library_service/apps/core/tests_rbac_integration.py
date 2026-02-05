@@ -221,6 +221,10 @@ class RBACIntegrationTestCase(TestCase):
     def test_member_sees_only_own_borrowings(self):
         """Test MEMBERs can only see their own borrowings."""
         # Create borrowings for different members
+        # Decrement available_copies since we're creating borrowing directly
+        self.book.available_copies = 4
+        self.book.save()
+        
         borrowing1 = Borrowing.objects.create(
             member=self.member_record,
             book=self.book
@@ -262,6 +266,10 @@ class RBACIntegrationTestCase(TestCase):
 
     def test_return_book_requires_admin_or_librarian(self):
         """Test return_book action requires ADMIN or LIBRARIAN role."""
+        # Decrement available_copies since we're creating borrowing directly
+        self.book.available_copies = 4
+        self.book.save()
+        
         borrowing = Borrowing.objects.create(
             member=self.member_record,
             book=self.book
@@ -280,7 +288,7 @@ class RBACIntegrationTestCase(TestCase):
             title='Test Book 2',
             author='Test Author',
             total_copies=5,
-            available_copies=4
+            available_copies=4  # Start with 4 since we'll create a borrowing
         )
         borrowing2 = Borrowing.objects.create(
             member=self.member_record,
@@ -293,6 +301,10 @@ class RBACIntegrationTestCase(TestCase):
 
     def test_mark_fine_as_paid_requires_admin_or_librarian(self):
         """Test mark_as_paid on fines requires ADMIN or LIBRARIAN role."""
+        # Decrement available_copies since we're creating borrowing directly
+        self.book.available_copies = 4
+        self.book.save()
+        
         borrowing = Borrowing.objects.create(
             member=self.member_record,
             book=self.book
@@ -316,7 +328,7 @@ class RBACIntegrationTestCase(TestCase):
             title='Test Book 2',
             author='Test Author',
             total_copies=5,
-            available_copies=5
+            available_copies=4  # Start with 4 since we'll create a borrowing
         )
         borrowing2 = Borrowing.objects.create(
             member=self.member_record,

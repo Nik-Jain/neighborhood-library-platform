@@ -2,13 +2,17 @@
 
 import { useState } from 'react'
 import { useFinesQuery, useUnpaidFinesQuery, useMarkAsPaidMutation } from '@/hooks/use-fines'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react'
 import { formatDate } from '@/lib/date'
+import ConfirmationDialog from '@/components/confirmation-dialog'
+import { useConfirmationDialog } from '@/hooks/use-confirmation-dialog'
 
 export default function FinesPage() {
   const [showUnpaidOnly, setShowUnpaidOnly] = useState(true)
   const [page, setPage] = useState(1)
   const [markingAsPaidId, setMarkingAsPaidId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const { dialogState, confirm, handleCancel } = useConfirmationDialog()
 
   const query = showUnpaidOnly ? useUnpaidFinesQuery({ page }) : useFinesQuery({ page })
   const { data, isLoading } = query
@@ -18,14 +22,20 @@ export default function FinesPage() {
   const totalAmount = fines.reduce((sum, fine) => sum + parseFloat(fine.amount), 0)
 
   const handleMarkAsPaid = async (fineId: string) => {
-    const confirmed = window.confirm('Mark this fine as paid?')
+    const confirmed = await confirm({
+      title: 'Mark Fine as Paid',
+      message: 'Are you sure you want to mark this fine as paid?',
+      confirmLabel: 'Mark as Paid',
+      variant: 'info',
+    })
     if (!confirmed) return
     try {
       setMarkingAsPaidId(fineId)
+      setError(null)
       await markAsPaidMutation.mutateAsync(fineId)
-    } catch (error) {
-      console.error('Failed to mark fine as paid:', error)
-      alert('Failed to mark fine as paid. Please try again.')
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || 'Failed to mark fine as paid. Please try again.'
+      setError(errorMessage)
     } finally {
       setMarkingAsPaidId(null)
     }
@@ -49,6 +59,21 @@ export default function FinesPage() {
           {showUnpaidOnly ? 'Show All' : 'Show Unpaid Only'}
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-600">
@@ -159,6 +184,17 @@ export default function FinesPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={dialogState.isOpen}
+        title={dialogState.title}
+        message={dialogState.message}
+        confirmLabel={dialogState.confirmLabel}
+        cancelLabel={dialogState.cancelLabel}
+        variant={dialogState.variant}
+        onConfirm={dialogState.onConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   )
 }

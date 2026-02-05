@@ -147,6 +147,20 @@ class Book(TimestampedModel):
             models.Index(fields=['author']),
             models.Index(fields=['isbn']),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(total_copies__gte=0),
+                name='book_total_copies_non_negative'
+            ),
+            models.CheckConstraint(
+                check=models.Q(available_copies__gte=0),
+                name='book_available_copies_non_negative'
+            ),
+            models.CheckConstraint(
+                check=models.Q(available_copies__lte=models.F('total_copies')),
+                name='book_available_lte_total'
+            ),
+        ]
     
     def __str__(self):
         return f"{self.title} by {self.author}"
@@ -189,6 +203,14 @@ class Borrowing(TimestampedModel):
             models.Index(fields=['member', 'returned_at']),
             models.Index(fields=['book', 'returned_at']),
             models.Index(fields=['due_date']),
+            models.Index(fields=['member', 'book', 'returned_at']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['member', 'book'],
+                condition=models.Q(returned_at__isnull=True),
+                name='unique_active_borrowing_per_member_book'
+            ),
         ]
     
     def __str__(self):
@@ -198,7 +220,11 @@ class Borrowing(TimestampedModel):
         """Override save to set due_date if not provided."""
         if not self.due_date:
             # Default borrowing period is 14 days
-            self.due_date = timezone.now().date() + timedelta(days=14)
+            from .services import BorrowingService
+            self.due_date = (
+                timezone.now().date() + 
+                timedelta(days=BorrowingService.DEFAULT_BORROW_PERIOD_DAYS)
+            )
         super().save(*args, **kwargs)
     
     @property
@@ -245,6 +271,20 @@ class Fine(TimestampedModel):
     
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['borrowing']),
+            models.Index(fields=['is_paid']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(amount__gte=0),
+                name='fine_amount_non_negative'
+            ),
+            models.UniqueConstraint(
+                fields=['borrowing'],
+                name='unique_fine_per_borrowing'
+            ),
+        ]
     
     def __str__(self):
         return f"Fine for {self.borrowing.member.full_name} - ${self.amount}"

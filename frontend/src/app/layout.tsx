@@ -3,6 +3,8 @@
 import { ReactNode, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Navigation from '../components/navigation'
+import ErrorBoundary from '../components/error-boundary'
+import { ToastProvider } from '../components/toast-provider'
 import { useAuthStore } from '../store/auth'
 import './globals.css'
 
@@ -24,12 +26,14 @@ function LayoutContent({ children }: { children: ReactNode }) {
   }, [loadFromStorage])
 
   return (
-    <>
+    <ToastProvider>
       <Navigation />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </main>
-    </>
+    </ToastProvider>
   )
 }
 

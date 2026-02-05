@@ -28,6 +28,7 @@ RUN pip install --upgrade pip setuptools wheel && \
 # Copy project
 COPY backend/library_service ./library_service
 COPY backend/manage.py .
+COPY proto ./proto
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/logs /app/staticfiles /app/media && \
