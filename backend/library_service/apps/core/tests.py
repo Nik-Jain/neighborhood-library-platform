@@ -120,8 +120,9 @@ class MemberAPITests(APITestCase):
     def test_create_member(self):
         """Test creating a member via API."""
         # Assign admin role to user for member creation
-        from library_service.apps.core.models import UserRole
-        UserRole.objects.create(user=self.user, role='ADMIN')
+        from django.contrib.auth.models import Group
+        admin_group, _ = Group.objects.get_or_create(name='ADMIN')
+        self.user.groups.add(admin_group)
         
         data = {
             'first_name': 'New',
