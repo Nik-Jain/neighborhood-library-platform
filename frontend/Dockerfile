@@ -14,6 +14,7 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Rebuild the source code only when needed
 FROM base AS builder
+RUN apk add --no-cache protobuf
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -22,7 +23,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
 
-# Build Next.js application
+# Build Next.js application - skip proto generation if files exist
 RUN npm run build
 
 # Production image, copy all files and run next
